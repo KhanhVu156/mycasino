@@ -1,0 +1,81 @@
+.reel {
+    display: inline-block;
+    width: 80px;
+    height: 80px;
+    background: #222;
+    border: 3px solid gold;
+    border-radius: 10px;
+    font-size: 3rem;
+    line-height: 80px;
+    margin: 10px;
+    color: white;
+    box-shadow: inset 0 0 10px black;
+}
+
+#spin-btn {
+    background: gold;
+    color: black;
+    font-weight: bold;
+}
+.btn-primary {
+    transition: all 0.3s ease;
+}
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,123,255,0.4);
+}
+
+.form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    border-color: #667eea;
+}
+
+.card {
+    transition: transform 0.3s;
+}
+.card:hover {
+    transform: scale(1.02);
+}
+/* Máy slot */
+.slot-machine {
+    background: #222;
+    border: 5px solid gold;
+    border-radius: 20px;
+    padding: 30px;
+    display: inline-block;
+    box-shadow: 0 0 20px rgba(255,215,0,0.5);
+}
+
+.reels-container {
+    display: flex;
+    gap: 10px;
+    background: #111;
+    padding: 20px;
+    border-radius: 15px;
+    border: 2px solid #555;
+}
+
+.reel {
+    width: 100px;
+    height: 100px;
+    background: #000;
+    border: 3px solid #ffd700;
+    border-radius: 10px;
+    font-size: 4rem;
+    line-height: 100px;
+    text-align: center;
+    color: white;
+    text-shadow: 0 0 10px gold;
+    box-shadow: inset 0 0 20px #000, 0 0 20px gold;
+    transition: all 0.3s;
+}
+
+/* Hiệu ứng khi thắng */
+.win .reel {
+    animation: win-pulse 0.5s infinite alternate;
+}
+
+@keyframes win-pulse {
+    from { box-shadow: 0 0 20px gold; }
+    to { box-shadow: 0 0 50px orange; }
+}

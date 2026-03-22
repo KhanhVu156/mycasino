@@ -1,0 +1,19 @@
+{% extends 'slots/base.html' %}
+
+{% block content %}
+<h1 class="text-center mb-4">Chọn máy slot</h1>
+<div class="row">
+    {% for machine in machines %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ machine.name }}</h5>
+                    <a href="{% url 'play_machine' machine.id %}" class="btn btn-primary">Chơi</a>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <p class="text-center">Hiện chưa có máy slot nào. Vui lòng quay lại sau.</p>
+    {% endfor %}
+</div>
+{% endblock %}

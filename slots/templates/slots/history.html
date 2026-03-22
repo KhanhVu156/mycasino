@@ -1,0 +1,30 @@
+{% extends 'slots/base.html' %}
+{% block content %}
+<h2>Lịch sử quay</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Máy</th>
+            <th>Kết quả</th>
+            <th>Cược</th>
+            <th>Thắng</th>
+            <th>Số dư sau</th>
+            <th>Jackpot?</th>
+            <th>Thời gian</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for spin in spins %}
+        <tr>
+            <td>{{ spin.machine_type.name }}</td>
+            <td>{{ spin.result }}</td>
+            <td>${{ spin.bet }}</td>
+            <td>${{ spin.payout }}</td>
+            <td>${{ spin.balance_after }}</td>
+            <td>{% if spin.jackpot_hit %}🎉{% endif %}</td>
+            <td>{{ spin.timestamp|date:"H:i d/m/Y" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
