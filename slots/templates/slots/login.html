@@ -4,7 +4,7 @@
 <div class="container">
     <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
         <div class="col-md-6 col-lg-5">
-            <div class="card shadow-lg border-0 rounded-4">
+            <div class="card shadow-lg border-0 rounded-4 animate__animated animate__fadeInUp">
                 <!-- Header gradient -->
                 <div class="card-header text-white text-center py-4 rounded-top-4" 
                      style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
@@ -16,7 +16,6 @@
                     <form method="post">
                         {% csrf_token %}
 
-                        <!-- Hiển thị lỗi chung (sai tài khoản/mật khẩu) -->
                         {% if form.non_field_errors %}
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 <i class="fas fa-exclamation-circle me-2"></i>
@@ -38,12 +37,6 @@
                                        placeholder="Nhập tên đăng nhập"
                                        value="{{ form.username.value|default:'' }}">
                             </div>
-                            {% if form.username.errors %}
-                                <div class="invalid-feedback d-block">
-                                    <i class="fas fa-exclamation-circle me-1"></i>
-                                    {{ form.username.errors }}
-                                </div>
-                            {% endif %}
                         </div>
 
                         <!-- Trường Password -->
@@ -58,25 +51,19 @@
                                        class="form-control form-control-lg {% if form.password.errors %}is-invalid{% endif %}"
                                        placeholder="Nhập mật khẩu">
                             </div>
-                            {% if form.password.errors %}
-                                <div class="invalid-feedback d-block">
-                                    <i class="fas fa-exclamation-circle me-1"></i>
-                                    {{ form.password.errors }}
-                                </div>
-                            {% endif %}
                         </div>
 
                         <!-- Tùy chọn ghi nhớ và quên mật khẩu -->
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <div class="card shadow-lg border-0 rounded-4 animate__animated animate__fadeInUp">
-    <div class="form-check">
-        {{ form.remember_me }}
-        <label class="form-check-label" for="{{ form.remember_me.id_for_label }}">
-            Ghi nhớ đăng nhập
-        </label>
-    </div>
-    <a href="{% url 'password_reset' %}" class="text-decoration-none small">Quên mật khẩu?</a>
-</div>
+                            <div class="form-check">
+                                {{ form.remember_me }}
+                                <label class="form-check-label" for="{{ form.remember_me.id_for_label }}">
+                                    Ghi nhớ đăng nhập
+                                </label>
+                            </div>
+                            <a href="{% url 'password_reset' %}" class="text-decoration-none small">Quên mật khẩu?</a>
+                        </div>
+
                         <!-- Nút đăng nhập -->
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary btn-lg rounded-pill">

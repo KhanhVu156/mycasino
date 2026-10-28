@@ -1,19 +1,55 @@
 {% extends 'slots/base.html' %}
+{% load static %}
 
 {% block content %}
-<h1 class="text-center mb-4">Chọn máy slot</h1>
-<div class="row">
+<!-- HERO BANNER (Đã xóa tagline) -->
+<div class="hero-section text-center animate__animated animate__fadeIn">
+    <h1 class="display-4 fw-bold text-gold text-shadow-neon mb-0">DIAMOND CASINO</h1>
+</div>
+
+<!-- DANH SÁCH MÁY SLOT -->
+<div class="row justify-content-center">
     {% for machine in machines %}
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">{{ machine.name }}</h5>
-                    <a href="{% url 'play_machine' machine.id %}" class="btn btn-primary">Chơi</a>
+        <div class="col-md-6 col-lg-4 mb-4 animate__animated animate__fadeInUp" style="animation-delay: {{ forloop.counter0|add:1 }}00ms;">
+            <div class="casino-card h-100">
+                <div class="card-body d-flex flex-column text-center">
+                    
+                    <!-- Icon Máy -->
+                    <div class="machine-icon mb-3">
+                        <i class="fas fa-dice text-gold fs-1"></i>
+                    </div>
+                    
+                    <!-- Tên Máy -->
+                    <h4 class="card-title fw-bold">{{ machine.name }}</h4>
+                    
+                    <!-- Mô tả (nếu có) -->
+                    {% if machine.description %}
+                        <p class="text-muted small mb-3">{{ machine.description|truncatechars:50 }}</p>
+                    {% else %}
+                        <p class="text-muted small mb-3">Cỗ máy cổ điển với tỷ lệ thắng hấp dẫn.</p>
+                    {% endif %}
+                    
+                    <!-- Hộp hiển thị Jackpot -->
+                    <div class="jackpot-box mb-4 mt-auto">
+                        <span class="d-block text-uppercase text-warning small fw-bold">Hũ hiện tại</span>
+                        <span class="fs-3 fw-bold text-success">
+                            ${{ machine.jackpot.amount|default:"1000" }}
+                        </span>
+                    </div>
+                    
+                    <!-- Nút Chơi -->
+                    <a href="{% url 'play_machine' machine.id %}" class="btn btn-gold w-100 fw-bold py-2">
+                        CHƠI NGAY <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
                 </div>
             </div>
         </div>
     {% empty %}
-        <p class="text-center">Hiện chưa có máy slot nào. Vui lòng quay lại sau.</p>
+        <div class="col-12 text-center mt-5 animate__animated animate__fadeIn">
+            <div class="alert alert-dark border-gold" role="alert">
+                <i class="fas fa-info-circle me-2"></i> Hiện chưa có máy slot nào. Vui lòng vào trang Admin để tạo.
+            </div>
+        </div>
     {% endfor %}
 </div>
 {% endblock %}

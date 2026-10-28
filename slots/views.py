@@ -1,23 +1,32 @@
 import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth import login, logout
 from django.contrib.auth.forms import UserCreationForm
 from django.http import JsonResponse
 from django.conf import settings
+from django.db import transaction
+from django.views.decorators.http import require_POST
+
 from .models import SlotMachineType, UserProfile, SpinRecord, Jackpot
 from .slot_logic import BaseSlotMachine
-from .forms import CustomAuthenticationForm
+from .forms import CustomAuthenticationForm, SpinForm
 
 @login_required
 def machine_list(request):
-    machines = SlotMachineType.objects.all()
+    """
+    Hiển thị danh sách máy slot.
+    TỐI ƯU: Sử dụng select_related('jackpot') để lấy thông tin hũ (Jackpot) 
+    trong cùng 1 câu query, tránh lỗi N+1 Query làm chậm web.
+    """
+    machines = SlotMachineType.objects.select_related('jackpot').all()
     return render(request, 'slots/machine_list.html', {'machines': machines})
 
 @login_required
 def play_machine(request, machine_id):
     machine = get_object_or_404(SlotMachineType, id=machine_id)
     profile = request.user.userprofile
+    # Đảm bảo máy chơi có hũ, nếu chưa có thì tạo mới mặc định 1000
     jackpot, _ = Jackpot.objects.get_or_create(machine_type=machine, defaults={'amount': 1000})
     return render(request, 'slots/play.html', {
         'machine': machine,
@@ -26,91 +35,97 @@ def play_machine(request, machine_id):
     })
 
 @login_required
+@require_POST
 def spin(request, machine_id):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-    
-    data = json.loads(request.body)
-    bet = int(data.get('bet', 0))
+    """
+    Xử lý logic quay số.
+    Sử dụng transaction.atomic để đảm bảo tính toàn vẹn dữ liệu (tránh race condition).
+    """
+    try:
+        data = json.loads(request.body)
+        form = SpinForm(data)
+        if not form.is_valid():
+            return JsonResponse({'error': 'Dữ liệu cược không hợp lệ.'}, status=400)
+        bet = form.cleaned_data['bet']
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Dữ liệu gửi lên không phải JSON hợp lệ.'}, status=400)
+
     machine = get_object_or_404(SlotMachineType, id=machine_id)
-    profile = request.user.userprofile
-
-    
-    if bet <= 0 or bet > profile.balance:
-        return JsonResponse({'error': 'Invalid bet'}, status=400)
-
-    profile.balance -= bet
-    profile.save()
-
     slot = BaseSlotMachine(machine.reels, machine.win_patterns)
 
-   
-    force_win = False
-    if profile.wins_count < 3:
-        
-        import random
-        if random.random() < 0.7: 
+    # Sử dụng transaction để khóa dữ liệu (select_for_update), chống spam click
+    with transaction.atomic():
+        profile = UserProfile.objects.select_for_update().get(user=request.user)
+        jackpot, _ = Jackpot.objects.select_for_update().get_or_create(machine_type=machine, defaults={'amount': 1000})
+
+        if bet > profile.balance:
+            return JsonResponse({'error': 'Số dư của bạn không đủ.'}, status=400)
+
+        # 1. Trừ tiền cược
+        profile.balance -= bet
+        profile.spins_count += 1
+
+        # 2. Xử lý Pity System (Hệ thống bù)
+        # Nếu thua 10 lần liên tiếp, tự động cho thắng nhỏ để giữ chân người chơi.
+        force_win = False
+        if profile.consecutive_losses >= 10:
             force_win = True
+            profile.consecutive_losses = 0 # Reset chuỗi thua
 
-    if force_win:
-    
-        win_patterns = machine.win_patterns
-        pattern = random.choice(list(win_patterns.keys()))
-        multiplier = win_patterns[pattern]
-        payout = bet * multiplier
-        is_jackpot = (multiplier == max(win_patterns.values()))
+        is_jackpot = False
+        
+        # 3. Tính kết quả
+        if force_win:
+            result = slot.generate_forced_win()
+            payout, is_jackpot = slot.get_payout(result, bet)
+            if payout == 0: 
+                payout = bet * 2 
+        else:
+            result = slot.spin()
+            payout, is_jackpot = slot.get_payout(result, bet)
 
-        
-        result = pattern * (machine.reels // len(pattern)) + pattern[:machine.reels % len(pattern)]
-        result = result.ljust(machine.reels, '0')  # Đảm bảo đủ độ dài
-
-        
-        profile.wins_count += 1
-        profile.save()
-    else:
-       
-        result = slot.spin()
-        payout, is_jackpot = slot.get_payout(result, bet)
-        
-        if payout > 0 and profile.wins_count < 3:
+        # 4. Cập nhật trạng thái thắng/thua
+        if payout > 0:
+            profile.consecutive_wins += 1
+            profile.consecutive_losses = 0
             profile.wins_count += 1
-            profile.save()
+        else:
+            profile.consecutive_wins = 0
+            profile.consecutive_losses += 1
 
-   
-    jackpot, _ = Jackpot.objects.get_or_create(machine_type=machine, defaults={'amount': 1000})
-    if is_jackpot and payout > 0:
-        payout += jackpot.amount     
-        jackpot.amount = 1000        
-    else:
+        # 5. Xử lý Nổ hũ (Jackpot)
+        if is_jackpot and payout > 0:
+            payout += jackpot.amount     
+            jackpot.amount = 1000 # Reset hũ về mức cơ bản
+        else:
+            # Trích 1% tiền cược vào hũ (tối thiểu $1)
+            contribution = max(1, int(bet * 0.01))
+            jackpot.amount += contribution
         
-        contribution = max(1, int(bet * 0.01))
-        jackpot.amount += contribution
-    jackpot.save()
+        jackpot.save()
 
-    
-    profile.balance += payout
-    profile.save()
+        # 6. Cộng tiền thắng vào tài khoản
+        profile.balance += payout
+        profile.save()
 
-    
-    SpinRecord.objects.create(
-        user=request.user,
-        machine_type=machine,
-        result=result,
-        bet=bet,
-        payout=payout,
-        balance_after=profile.balance,
-        jackpot_hit=is_jackpot
-    )
+        # 7. Lưu lịch sử
+        SpinRecord.objects.create(
+            user=request.user,
+            machine_type=machine,
+            result=result,
+            bet=bet,
+            payout=payout,
+            balance_after=profile.balance,
+            jackpot_hit=is_jackpot
+        )
 
-    
     return JsonResponse({
         'result': result,
         'payout': payout,
         'new_balance': profile.balance,
         'jackpot': jackpot.amount,
         'is_jackpot': is_jackpot,
-        'message': f"🎉 You won ${payout}!" if payout > 0 else "😞 God bless you.",
-        'wins_left': max(0, 3 - profile.wins_count)  
+        'message': f"🎉 Bạn thắng ${payout}!" if payout > 0 else "😞 Chúc bạn may mắn lần sau.",
     })
     
 @login_required
@@ -135,8 +150,7 @@ def user_login(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            remember_me = form.cleaned_data.get('remember_me', False)
-            if not remember_me:
+            if not form.cleaned_data.get('remember_me', False):
                 request.session.set_expiry(0)  
             else:
                 request.session.set_expiry(settings.SESSION_COOKIE_AGE)  

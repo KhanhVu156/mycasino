@@ -8,7 +8,11 @@ class UserProfile(models.Model):
     balance = models.IntegerField(default=100)
     spins_count = models.IntegerField(default=0)           
     consecutive_wins = models.IntegerField(default=0)     
+    consecutive_losses = models.IntegerField(default=0) # Thêm biến đếm chuỗi thua
     wins_count = models.IntegerField(default=0) 
+
+    def __str__(self):
+        return f"{self.user.username} - Balance: ${self.balance}"
 
 class SlotMachineType(models.Model):
     name = models.CharField(max_length=100)
@@ -23,6 +27,9 @@ class Jackpot(models.Model):
     machine_type = models.OneToOneField(SlotMachineType, on_delete=models.CASCADE, related_name='jackpot')
     amount = models.IntegerField(default=1000)
 
+    def __str__(self):
+        return f"Jackpot {self.machine_type.name} - ${self.amount}"
+
 class SpinRecord(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     machine_type = models.ForeignKey(SlotMachineType, on_delete=models.CASCADE)
@@ -33,7 +40,10 @@ class SpinRecord(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     jackpot_hit = models.BooleanField(default=False)
 
+    def __str__(self):
+        return f"{self.user.username} - {self.result} - ${self.payout}"
 
+# Signal tự động tạo Profile khi User được tạo
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:

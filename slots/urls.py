@@ -10,10 +10,3 @@ urlpatterns = [
     path('login/', views.user_login, name='login'),
     path('logout/', views.user_logout, name='logout'),
 ]
-from django.contrib.auth import logout
-from django.shortcuts import redirect
-
-def user_logout(request):
-    logout(request)
-    return redirect('login') 
-path('logout/', views.user_logout, name='logout'),
