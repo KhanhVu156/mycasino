@@ -1,7 +1,9 @@
-# 🎰 Diamond Casino - Slot Machine Web App
+# 🎰 Slot Machine - Web Game App
 
 > **Dự án Web Game (Portfolio Project)**  
 > Ứng dụng mô phỏng máy quay xổ số (Slot Machine) chuẩn Production, tích hợp kiến trúc **Single Page Application (SPA)** với AJAX và quản lý trạng thái giao diện thông minh.
+
+> ⚠️ **TUYÊN BỐ MIỄN TRỪ TRÁCH NHIỆM:** Dự án này chỉ phục vụ mục đích học tập và trình diễn kỹ năng lập trình. Không phải là một trò chơi cá cược thực tế.
 
 [![Python](https://img.shields.io/badge/Python-3.11-blue)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-5.0.6-green)](https://www.djangoproject.com/)
@@ -12,7 +14,7 @@
 
 ## 📑 THÔNG TIN DỰ ÁN
 
-- **Tên dự án:** Diamond Casino (Web Game Slot Machine)
+- **Tên dự án:** Slot Machine (Web Game)
 - **Mục đích:** Xây dựng một ứng dụng web giải trí trực tuyến, thể hiện kỹ năng Full-stack (Backend Django + Frontend AJAX/Bootstrap).
 - **Điểm nhấn kỹ thuật:** Xử lý đồng thời (Concurrency), Hệ thống bù may mắn (Pity System), Giao diện Responsive và Hỗ trợ Dark/Light Mode.
 
@@ -22,10 +24,10 @@
 
 ### 1. Kiến trúc Backend & Xử lý dữ liệu (Django)
 
-- **Chống Race Condition (Tranh chấp dữ liệu):** Sử dụng `transaction.atomic()` và `select_for_update()` trong quá trình quay số. Điều này đảm bảo dù người chơi có spam click liên tục, số dư tài khoản và tiền hũ (Jackpot) luôn được tính toán chính xác tuyệt đối.
+- **Chống Race Condition (Tranh chấp dữ liệu):** Sử dụng `transaction.atomic()` và `select_for_update()` trong quá trình quay số. Điều này đảm bảo dù người chơi có spam click liên tục, số dư xu và hũ thưởng (Jackpot) luôn được tính toán chính xác tuyệt đối.
 - **Tối ưu hóa truy vấn (Query Optimization):** Sử dụng `select_related('jackpot')` ở trang chủ để giải quyết triệt để lỗi N+1 Query, giúp giảm tải Database khi hiển thị danh sách máy.
 - **Hệ thống Pity (Bù may mắn):** Tự động theo dõi chuỗi thua của người chơi. Nếu thua 10 lần liên tiếp, hệ thống sẽ tự động "ép" ra một kết quả thắng nhỏ để giữ chân người chơi (áp dụng tư duy của các game Gacha hiện đại).
-- **Jackpot động:** Trích 1% tiền cược vào hũ. Khi nổ hũ, toàn bộ tiền hũ được cộng vào tài khoản và reset về mức cơ bản.
+- **Hũ thưởng động (Jackpot):** Trích 1% xu cược vào hũ. Khi nổ hũ, toàn bộ lượng xu trong hũ được cộng vào tài khoản và reset về mức cơ bản.
 
 ### 2. Kiến trúc Frontend & UI/UX (Bootstrap 5 & Vanilla JS)
 
@@ -62,7 +64,7 @@ mycasino/
 │   ├── admin.py                # Đăng ký Models vào trang Admin
 │   ├── forms.py                # Form validate (Đăng nhập, Cược)
 │   ├── models.py               # Cấu trúc Database (User, Máy, Lịch sử)
-│   ├── slot_logic.py           # Chứa thuật toán quay và tính tiền (Core Logic)
+│   ├── slot_logic.py           # Chứa thuật toán quay và tính điểm (Core Logic)
 │   ├── urls.py                 # Định tuyến URL của app slots
 │   └── views.py                # Xử lý logic API và Render giao diện
 ├── db.sqlite3                  # Database
@@ -78,8 +80,8 @@ mycasino/
 ### Bước 1: Tạo môi trường ảo
 
 ```bash
-conda create -n casino_env python=3.11 -y
-conda activate casino_env
+conda create -n slot_game_env python=3.11 -y
+conda activate slot_game_env
 ```
 
 ### Bước 2: Cài đặt thư viện
@@ -121,15 +123,30 @@ Bây giờ bạn có thể truy cập `http://127.0.0.1:8000/`, đăng ký tài 
 
 1. **Sinh kết quả quay (`slot_logic.py`):**
    Sử dụng thư viện `random` để chọn ngẫu nhiên các ký tự từ `0-9` cho từng trục. Kết quả trả về là một chuỗi (VD: `"777"`).
-2. **Tính toán tiền thắng (`get_payout`):**
-   Duyệt qua `win_patterns` (JSON), kiểm tra xem chuỗi kết quả có chứa pattern nào không. Nếu có, lấy pattern có hệ số thưởng cao nhất và nhân với tiền cược.
+2. **Tính toán điểm thắng (`get_payout`):**
+   Duyệt qua `win_patterns` (JSON), kiểm tra xem chuỗi kết quả có chứa pattern nào không. Nếu có, lấy pattern có hệ số thưởng cao nhất và nhân với mức cược.
 3. **Ép thắng (`generate_forced_win`):**
-   Khi kích hoạt Pity System, thuật toán sẽ loại bỏ pattern Jackpot (để tránh lạm phát tiền tệ), chọn ngẫu nhiên một pattern nhỏ hơn, căn chỉnh độ dài cho khớp với số trục và trả về kết quả.
+   Khi kích hoạt Pity System, thuật toán sẽ loại bỏ pattern Jackpot (để tránh lạm phát điểm), chọn ngẫu nhiên một pattern nhỏ hơn, căn chỉnh độ dài cho khớp với số trục và trả về kết quả.
 
 ---
 
 ## ⚠️ LƯU Ý KỸ THUẬT
 
-- **Bảo mật:** Đã tích hợp CSRF Token cho mọi request POST (quay số). Dữ liệu cược được validate chặt chẽ từ Server thông qua `SpinForm` để chống hack tiền.
+- **Bảo mật:** Đã tích hợp CSRF Token cho mọi request POST (quay số). Dữ liệu cược được validate chặt chẽ từ Server thông qua `SpinForm` để chống hack điểm.
 - **Xử lý lỗi:** Nếu mất kết nối mạng trong lúc quay, Javascript sẽ tự động bắt lỗi (`try/catch`), dừng hiệu ứng và thông báo cho người chơi mà không làm đơ trang.
 - **Light Mode:** Màu vàng Neon được chuyển thành màu Vàng Hổ Phách (Amber) khi ở Light Mode để đảm bảo người dùng không bị chói mắt và dễ đọc chữ.
+
+---
+
+### 💻 MÃ HTML ĐỂ HIỂN THỊ BANNER TRÊN TRANG WEB
+
+Để banner này hiện lên trên cùng của giao diện web thực tế, bạn hãy mở file `templates/slots/base.html` và dán đoạn code sau vào **ngay dưới thẻ `<body>`** (trước thẻ `<nav>` hoặc `<div class="container">`):
+
+```html
+<!-- BANNER CẢNH BÁO HỌC TẬP -->
+<div class="alert alert-warning text-center fw-bold mb-0 rounded-0 border-0 border-bottom border-warning" role="alert" style="background-color: #fff3cd; color: #664d03; z-index: 1050; position: relative;">
+    ⚠️ Dự án này chỉ phục vụ mục đích học tập và trình diễn kỹ năng lập trình. Không phải là một trò chơi cá cược thực tế.
+</div>
+```
+
+*(Lưu ý: Nếu bạn đang dùng Dark Mode, trình duyệt sẽ tự động đổi màu chữ/nền của thẻ `alert-warning` này cho phù hợp, hoặc bạn có thể tùy chỉnh lại mã màu trong thuộc tính `style` cho đẹp hơn).*
